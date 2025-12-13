@@ -230,12 +230,7 @@ ${contextText}
         })),
         Augmented_prompt: {
             System: SYSTEM_PROMPT,
-            User: userPrompt,
-        },
-        debug: {
-            mode,
-            top_k_used: TOP_K,
-            raw_matches: search.matches.length
+            User: userPrompt
         }
     });
 
