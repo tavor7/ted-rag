@@ -63,7 +63,7 @@ function detectQueryType(question: string): "fact" | "list" | "summary" | "recom
   if (q.includes("summary") || q.includes("summarize") || q.includes("key idea") || q.includes("main idea"))
     return "summary";
 
-  if (q.includes("3 ") || q.includes("three") || q.includes("list") || q.includes("multiple"))
+  if (q.includes("list") || q.includes("multiple"))
     return "list";
 
   return "fact";
@@ -153,22 +153,29 @@ export async function POST(req: NextRequest) {
     // ------------------------------
     //  Mode: FACT
     // ------------------------------
-    if (mode === "fact") {
-      assistantBehavior = `
-Answer the factual question STRICTLY from the retrieved chunks.
-If uncertain, say "I don't know based on the provided TED data."
-Use quotes/evidence from context.`;
-    }
+if (mode === "fact") {
+  assistantBehavior = `
+Locate a SINGLE concrete fact or entity that answers the user’s question.
+Return ONLY what the question asks for (e.g., title, speaker, or specific detail).
+Do not invent talks. Use only the retrieved context.
+If the requested information cannot be determined from the provided context, respond exactly with:
+"I don’t know based on the provided TED data."
+`;
+}
 
     // ------------------------------
     //  Mode: LIST (3 TALKS)
     // ------------------------------
     if (mode === "list") {
       assistantBehavior = `
-Return EXACTLY 3 TED talk titles that match the topic.
-They MUST be 3 different talks.
-If fewer than 3 talks appear in context, return only those available.
-Do not invent talks. Use only retrieved context.`;
+Return a list of TED talk titles that match the topic.
+- If the user explicitly asks for a number (e.g., 2 or 3), return exactly that many DIFFERENT talks (up to a maximum of 3).
+- If the user does not specify a number, return up to 3 different talks.
+- If fewer relevant talks appear in the retrieved context, return only those available.
+Do not invent talks. Use only the retrieved context.
+If the requested information cannot be determined from the provided context, respond exactly with:
+"I don’t know based on the provided TED data."
+`;
     }
 
     // ------------------------------
@@ -178,7 +185,10 @@ Do not invent talks. Use only retrieved context.`;
       assistantBehavior = `
 Identify the SINGLE most relevant talk.
 Produce a short key‑idea summary using only the retrieved chunks.
-Do not use outside knowledge.`;
+Do not use outside knowledge.
+If the requested information cannot be determined from the provided context, respond exactly with:
+"I don’t know based on the provided TED data."
+`;
     }
 
     // ------------------------------
@@ -190,7 +200,10 @@ Choose the SINGLE best TED talk relevant to the question.
 Provide:
 1. Title
 2. Why it matches — using evidence from the context only.
-No external knowledge allowed.`;
+No external knowledge allowed.
+If the requested information cannot be determined from the provided context, respond exactly with:
+"I don’t know based on the provided TED data."
+`;
     }
 
     userPrompt = `
