@@ -39,7 +39,7 @@ const index = pinecone.Index(
   process.env.PINECONE_HOST!
 );
 
-const TOP_K = 5; // get more chunks for classification
+const TOP_K = 12; 
 
 // ------------------------------
 //  System Prompt
