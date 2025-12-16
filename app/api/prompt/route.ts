@@ -51,23 +51,7 @@ If the answer cannot be determined from the provided context, respond: “I don�
 Always explain your answer using the given context, quoting or paraphrasing the relevant transcript or metadata when helpful.
 `;
 
-// ------------------------------
-//  Detect Query Type
-// ------------------------------
-function detectQueryType(question: string): "fact" | "list" | "summary" | "recommend" {
-  const q = question.toLowerCase();
 
-  if (q.includes("recommend") || q.includes("suggest"))
-    return "recommend";
-
-  if (q.includes("summary") || q.includes("summarize") || q.includes("key idea") || q.includes("main idea"))
-    return "summary";
-
-  if (q.includes("list") || q.includes("multiple"))
-    return "list";
-
-  return "fact";
-}
 
 // ------------------------------
 //  Extract unique talks
@@ -120,9 +104,6 @@ export async function POST(req: NextRequest) {
     if (!question)
       return NextResponse.json({ error: 'Missing "question"' }, { status: 400 });
 
-    // Detect query type
-    const mode = detectQueryType(question);
-
     // 1. Embed
     const emb = await openai.embeddings.create({
       model: "RPRTHPB-text-embedding-3-small",
@@ -148,69 +129,17 @@ export async function POST(req: NextRequest) {
     const talks = uniqueTalks(search.matches);
 
     let userPrompt = "";
-    let assistantBehavior = "";
-
-    // ------------------------------
-    //  Mode: FACT
-    // ------------------------------
-if (mode === "fact") {
-  assistantBehavior = `
-Locate a SINGLE concrete fact or entity that answers the user’s question.
-Return ONLY what the question asks for (e.g., title, speaker, or specific detail).
-Do not invent talks. Use only the retrieved context.
-If the requested information cannot be determined from the provided context, respond exactly with:
+    const assistantBehavior = `
+Answer the user’s question strictly and only using the provided TED dataset context.
+Return exactly what the question asks for (e.g., one talk, multiple talk titles, a summary, or a recommendation).
+Do not invent talks or details.
+If the answer cannot be determined from the provided context, respond exactly with:
 "I don’t know based on the provided TED data."
 `;
-}
-
-    // ------------------------------
-    //  Mode: LIST (3 TALKS)
-    // ------------------------------
-    if (mode === "list") {
-      assistantBehavior = `
-Return a list of TED talk titles that match the topic.
-- If the user explicitly asks for a number (e.g., 2 or 3), return exactly that many DIFFERENT talks (up to a maximum of 3).
-- If the user does not specify a number, return up to 3 different talks.
-- If fewer relevant talks appear in the retrieved context, return only those available.
-Do not invent talks. Use only the retrieved context.
-If the requested information cannot be determined from the provided context, respond exactly with:
-"I don’t know based on the provided TED data."
-`;
-    }
-
-    // ------------------------------
-    //  Mode: SUMMARY
-    // ------------------------------
-    if (mode === "summary") {
-      assistantBehavior = `
-Identify the SINGLE most relevant talk.
-Produce a short key‑idea summary using only the retrieved chunks.
-Do not use outside knowledge.
-If the requested information cannot be determined from the provided context, respond exactly with:
-"I don’t know based on the provided TED data."
-`;
-    }
-
-    // ------------------------------
-    //  Mode: RECOMMENDATION
-    // ------------------------------
-    if (mode === "recommend") {
-      assistantBehavior = `
-Choose the SINGLE best TED talk relevant to the question.
-Provide:
-1. Title
-2. Why it matches — using evidence from the context only.
-No external knowledge allowed.
-If the requested information cannot be determined from the provided context, respond exactly with:
-"I don’t know based on the provided TED data."
-`;
-    }
 
     userPrompt = `
 User question:
 ${question}
-
-Task mode: ${mode}
 
 Follow these instructions:
 ${assistantBehavior}
