@@ -4,6 +4,6 @@ export async function GET() {
   return NextResponse.json({
     chunk_size: 1024,
     overlap_ratio: 0.2,
-    top_k: 5,
+    top_k: 12,
   });
 }
